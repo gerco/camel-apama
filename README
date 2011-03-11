@@ -1,1 +1,4 @@
 This Apache Camel component allows you to create Camel routes from and to Progress Apama correlators.
+
+Java 6 required.
+

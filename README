@@ -1,4 +1,17 @@
-This Apache Camel component allows you to create Camel routes from and to Progress Apama correlators.
+Introduction:
+	This Apache Camel component allows you to create Camel routes from and to Progress Apama correlators.
 
-Java 6 required.
+Requirements:
+	Java 6 required.
+
+Build instructions:
+	Import the following jar files into your local maven repository:
+
+	File -> groupId / artifactId / version / packaging
+	APAMA_HOME/lib/engine_client4.2.jar -> com.progress.apama / engine-client / 4.2 / jar
+	APAMA_HOME/lib/util4.2.jar -> com.progress.apama / util / 4.2 / jar
+
+	Now use maven to package the jarfile:
+
+	mvn clean package
 

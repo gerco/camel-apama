@@ -21,10 +21,6 @@ package nl.gdries.camel.component.apama;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
@@ -32,9 +28,8 @@ import org.apache.camel.impl.DefaultComponent;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.apama.engine.beans.EngineClientBean;
-import com.apama.event.parser.EventParser;
-import com.apama.util.CompoundException;
+import com.apama.services.event.EventServiceFactory;
+import com.apama.services.event.IEventService;
 
 /**
  * This class implements the Apama Camel Component. URI should be in the form of
@@ -54,13 +49,6 @@ public class ApamaComponent extends DefaultComponent {
 	
 	private String defaultProcessName = "Apama Camel Component";
 	
-	private ScheduledExecutorService pings = Executors.newScheduledThreadPool(1);
-
-	{
-		// Have all Apama Events registered with the parser by their registrars
-		setupEventParser();
-	}
-	
 	public ApamaComponent() {
 	}
 	
@@ -76,53 +64,12 @@ public class ApamaComponent extends DefaultComponent {
 				(String)parameters.get(PROCESS_NAME_PARAMETER) : defaultProcessName;
 		parameters.remove(PROCESS_NAME_PARAMETER);
 
-		EngineClientBean engine = new EngineClientBean();
-		engine.setHost(uri.getHost());
-		engine.setPort(uri.getPort());
-		engine.setProcessName(processName);
-		engine.setConnectionPollingInterval(10000);
-
-		pings.scheduleWithFixedDelay(new PingEngine(engine), 0, 10, TimeUnit.SECONDS);
+		log.info("Connecting to " + uriString);
+		IEventService eventService = EventServiceFactory.createEventService(
+				uri.getHost(), uri.getPort(), processName);
 		
-		String[] channels = uri.getPath().substring(1).split(",");
-		return new ApamaEndpoint(this, engine, channels);
-	}
-
-	private void setupEventParser() {
-		EventParser parser = EventParser.getDefaultParser();
-		
-		ServiceLoader<ApamaEventRegistrar> registrars = ServiceLoader.load(ApamaEventRegistrar.class);
-		for(ApamaEventRegistrar registrar: registrars) {
-			registrar.registerEventTypes(parser);
-		}
+		String channels = uri.getPath().substring(1);
+		return new ApamaEndpoint(this, eventService, channels);
 	}
 	
-	@Override
-	protected void doStop() throws Exception {
-		log.debug("Shutting down ping thread");
-		pings.shutdown();
-		super.doStop();
-	}
-	
-	private class PingEngine implements Runnable {
-		private EngineClientBean engine;
-		
-		public PingEngine(EngineClientBean engine) {
-			this.engine = engine;
-		}
-		
-		@Override
-		public void run() {
-			try {
-				boolean wasConnected = engine.isBeanConnected();
-				engine.pingServer();
-				if(!wasConnected)
-					log.info("Successfully connected to correlator at " + engine.getHost() + ":" + engine.getPort());
-			} catch (CompoundException e) {
-				log.warn("Could not connect to correlator at " + engine.getHost() + ":" + engine.getPort());
-			}
-		}
-		
-	}
-
 }

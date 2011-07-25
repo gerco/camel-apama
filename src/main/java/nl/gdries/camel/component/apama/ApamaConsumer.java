@@ -19,6 +19,9 @@
  */
 package nl.gdries.camel.component.apama;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.UUID;
 
 import org.apache.camel.Endpoint;
@@ -30,10 +33,11 @@ import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultMessage;
 
 import com.apama.EngineException;
-import com.apama.engine.beans.EngineClientBean;
-import com.apama.engine.beans.interfaces.ConsumerOperationsInterface;
 import com.apama.event.Event;
 import com.apama.event.EventListenerAdapter;
+import com.apama.event.parser.EventType;
+import com.apama.services.event.IEventService;
+import com.apama.services.event.IEventServiceChannel;
 
 /**
  * A consumer for Apama events. Subscribes to a list of channels and sends
@@ -48,15 +52,18 @@ import com.apama.event.EventListenerAdapter;
  */
 class ApamaConsumer extends DefaultConsumer {
 	private final UUID uuid = UUID.randomUUID();
-	private final EngineClientBean engine;
-	private final ConsumerOperationsInterface consumer;
+	private final IEventService eventService;
+	private final IEventServiceChannel channel;
 	private final EventListener eventListener = new EventListener();
 	
-	public ApamaConsumer(Endpoint endpoint, Processor processor, EngineClientBean engine, String[] channels) throws EngineException {
+	public ApamaConsumer(Endpoint endpoint, Processor processor, IEventService eventService, String channels) throws EngineException {
 		super(endpoint, processor);
-		this.engine = engine;
-		consumer = engine.addConsumer(uuid.toString(), channels);
-		consumer.addEventListener(eventListener);
+		this.eventService = eventService;
+		
+		Map<String, Object> channelConfig = new HashMap<String, Object>();
+		channel = eventService.addChannel(channels, channelConfig);
+		setupEventParser(channel);
+		channel.addEventListener(eventListener);
 	}
 
 	private void handleEvent(Event event) {
@@ -80,9 +87,19 @@ class ApamaConsumer extends DefaultConsumer {
 	protected void doStop() throws Exception {
 		super.doStop();
 		log.debug("Removing eventlistener");
-		consumer.removeEventListener(eventListener);
+		channel.removeEventListener(eventListener);
 		log.debug("Removing consumer " + uuid);
-		engine.removeConsumer(uuid.toString());
+		eventService.removeChannel(uuid.toString());
+	}
+	
+	private static void setupEventParser(IEventServiceChannel channel) {
+		ServiceLoader<ApamaEventRegistrar> registrars = ServiceLoader.load(ApamaEventRegistrar.class);
+		for(ApamaEventRegistrar registrar: registrars) {
+			EventType[] eventTypes = registrar.getEventTypes();
+			for(EventType type: eventTypes) {
+				channel.registerEventType(type);
+			}
+		}
 	}
 	
 	private class EventListener extends EventListenerAdapter {

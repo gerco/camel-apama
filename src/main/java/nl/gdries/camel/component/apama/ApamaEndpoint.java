@@ -26,16 +26,16 @@ import org.apache.camel.impl.DefaultEndpoint;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.apama.engine.beans.EngineClientBean;
+import com.apama.services.event.IEventService;
 
 class ApamaEndpoint extends DefaultEndpoint {
-	private final EngineClientBean engine;
-	private final String[] channels;
+	private final IEventService eventService;
+	private final String channels;
 	private final Log log = LogFactory.getLog(getClass());
 	private ApamaConsumer consumer;
 	
-	public ApamaEndpoint(ApamaComponent component, EngineClientBean engine, String[] channels) {
-		this.engine = engine;
+	public ApamaEndpoint(ApamaComponent component, IEventService eventService, String channels) {
+		this.eventService = eventService;
 		this.channels = channels;
 		this.setCamelContext(component.getCamelContext());
 	}
@@ -43,13 +43,13 @@ class ApamaEndpoint extends DefaultEndpoint {
 	@Override
 	public synchronized Consumer createConsumer(Processor processor) throws Exception {
 		if(consumer == null)
-			consumer = new ApamaConsumer(this, processor, getEngine(), getChannels());
+			consumer = new ApamaConsumer(this, processor, getEventService(), getChannels());
 		return consumer;
 	}
 
 	@Override
 	public synchronized Producer createProducer() throws Exception {
-		return new ApamaProducer(this, getEngine());
+		return new ApamaProducer(this, getEventService());
 	}
 
 	@Override
@@ -59,25 +59,15 @@ class ApamaEndpoint extends DefaultEndpoint {
 
 	@Override
 	protected String createEndpointUri() {
-		return "apama://" + engine.getHost() + ":" + engine.getPort() + "/" + getChannelsAsString();
+		return "apama://" + eventService.getEngineClient().getHost() + ":" + eventService.getEngineClient().getPort() + "/" + getChannels();
 	}
 
-
-	public EngineClientBean getEngine() {
-		return engine;
+	public IEventService getEventService() {
+		return eventService;
 	}
 
-	public String[] getChannels() {
+	public String getChannels() {
 		return channels;
-	}
-
-	private String getChannelsAsString() {
-		StringBuilder builder = new StringBuilder();
-		for(String c: getChannels()) {
-			builder.append(',');
-			builder.append(c);
-		}
-		return builder.substring(1);
 	}
 	
 	@Override
@@ -90,7 +80,7 @@ class ApamaEndpoint extends DefaultEndpoint {
 	public void stop() throws Exception {
 		log.info("Stopping apama endpoint " + createEndpointUri());
 		super.stop();
-		engine.disconnect();
+		eventService.destroy();
 	}
 	
 }

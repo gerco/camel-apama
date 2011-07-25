@@ -19,12 +19,16 @@
 		<dependency>
 			<groupId>com.progress.apama</groupId>
 			<artifactId>engine-client</artifactId>
-			<version>4.2</version>
+			<version>4.3</version>
+			<scope>system</scope>
+			<systemPath>C:/Progress/Apama/43/lib/engine_client4.3.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.progress.apama</groupId>
 			<artifactId>util</artifactId>
-			<version>4.2</version>
+			<version>4.3</version>
+			<scope>system</scope>
+			<systemPath>C:/Progress/Apama/43/lib/util4.3.jar</systemPath>
 		</dependency>
 	</dependencies>
 	<build>

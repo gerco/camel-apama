@@ -19,7 +19,7 @@
  */
 package nl.gdries.camel.component.apama;
 
-import com.apama.event.parser.EventParser;
+import com.apama.event.parser.EventType;
 
 /**
  * Interface for users of this package to register events with the Apama Event Parser.
@@ -30,5 +30,5 @@ import com.apama.event.parser.EventParser;
  * @author Gerco Dries
  */
 public interface ApamaEventRegistrar {
-	public void registerEventTypes(EventParser parser);
+	public EventType[] getEventTypes();
 }

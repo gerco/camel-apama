@@ -29,8 +29,8 @@ import org.apache.camel.impl.DefaultProducer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.apama.engine.beans.EngineClientBean;
 import com.apama.event.Event;
+import com.apama.services.event.IEventService;
 
 /**
  * Sends events to Apama. If the body is not one of the formats in the list below, you 
@@ -50,13 +50,13 @@ import com.apama.event.Event;
  */
 class ApamaProducer extends DefaultProducer {
 	private final Log log = LogFactory.getLog(getClass());
-	private final EngineClientBean engine;
+	private final IEventService eventService;
 	
 	private TypeConverter typeConverter;
 	
-	public ApamaProducer(ApamaEndpoint endpoint, EngineClientBean engine) {
+	public ApamaProducer(ApamaEndpoint endpoint, IEventService eventService) {
 		super(endpoint);
-		this.engine = engine;
+		this.eventService = eventService;
 		this.typeConverter = getEndpoint().getCamelContext().getTypeConverter();
 	}
 
@@ -67,7 +67,10 @@ class ApamaProducer extends DefaultProducer {
 		if(events.length > 0) {
 			if(log.isDebugEnabled())
 				log.debug(String.format("Sending %d events: %s", events.length, Arrays.toString(events)));
-			engine.sendEvents(true, events);
+			
+			for(Event event: events) {
+				eventService.sendEvent(event);
+			}
 		}
 	}
 

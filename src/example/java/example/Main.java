@@ -36,24 +36,24 @@ public class Main {
 		ctx.addRoutes(new RouteBuilder() {
 			@Override
 			public void configure() throws Exception {
-				from("apama://localhost:15903/channel")
+				from("apama://localhost:15903/TEST")
 					.setHeader("correlator", constant(1))
 					.to("seda:requests");
 				
-				from("apama://localhost:15904/channel")
-					.setHeader("correlator", constant(2))
-					.to("seda:requests");
+//				from("apama://localhost:15904/channel")
+//					.setHeader("correlator", constant(2))
+//					.to("seda:requests");
 				
 				from("seda:requests?concurrentConsumers=5")
-//					.to("some:thing/awesome")
+					.bean(new DebugBean(), "debug")
 					.to("seda:responses");
 				
 				from("seda:responses")
 					.choice()
 						.when(header("correlator").isEqualTo(1))
-							.to("apama://localhost:15903/")
-						.when(header("correlator").isEqualTo(2))
-							.to("apama://localhost:15904/");
+							.to("apama://localhost:15903/");
+//						.when(header("correlator").isEqualTo(2))
+//							.to("apama://localhost:15904/");
 			}
 		});
 
